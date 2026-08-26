@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Outfit', sans-serif;
+    color: #2d232e;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #fdf2f4;
+}
+::-webkit-scrollbar-thumb {
+  background: #ffb3c1;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ff758f;
+}
+
+/* Pixel art rendering utility */
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Floating & Micro Animations */
+@keyframes float-gentle {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes pulse-heart {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+
+/* Responsive Body Part Animations */
+@keyframes wag-tail {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(12deg); }
+}
+
+@keyframes wiggle-ears {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-4deg); }
+  75% { transform: rotate(5deg); }
+}
+
+@keyframes flap-wings {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-18deg) translateY(-2px); }
+}
+
+@keyframes swing-trunk {
+  0%, 100% { transform: rotate(0deg) translateY(0px); }
+  50% { transform: rotate(14deg) translateY(-4px); }
+}
+
+@keyframes head-bob {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes blink-eye {
+  0%, 90%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+
+@keyframes step-paws {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-2.5px); }
+}
+
+@keyframes leg-walk-cycle {
+  0% { transform: rotate(-5deg) translateY(-3px) scaleY(0.96); }
+  25% { transform: rotate(0deg) translateY(0px) scaleY(1.03); }
+  50% { transform: rotate(5deg) translateY(-3px) scaleY(0.96); }
+  75% { transform: rotate(0deg) translateY(0px) scaleY(1.03); }
+  100% { transform: rotate(-5deg) translateY(-3px) scaleY(0.96); }
+}
+
+.animate-float { animation: float-gentle 3s ease-in-out infinite; }
+.animate-pulse-heart { animation: pulse-heart 1.5s ease-in-out infinite; }
+.animate-tail { animation: wag-tail 1.2s ease-in-out infinite; transform-origin: bottom left; }
+.animate-ears { animation: wiggle-ears 2.4s ease-in-out infinite; transform-origin: bottom center; }
+.animate-wings { animation: flap-wings 0.9s ease-in-out infinite; transform-origin: top left; }
+.animate-wings-r { animation: flap-wings 0.9s ease-in-out infinite; transform-origin: top right; }
+.animate-trunk { animation: swing-trunk 1.8s ease-in-out infinite; transform-origin: top center; }
+.animate-head { animation: head-bob 2.5s ease-in-out infinite; transform-origin: bottom center; }
+.animate-blink { animation: blink-eye 4s ease-in-out infinite; transform-origin: center; }
+.animate-paws { animation: step-paws 0.6s ease-in-out infinite; }
+.animate-walk-cycle { animation: leg-walk-cycle 0.32s ease-in-out infinite; transform-origin: bottom center; }
+
+.border-cozy { border: 2.5px solid #2d232e; }
+
+

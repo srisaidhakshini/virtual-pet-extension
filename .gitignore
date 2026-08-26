@@ -3,3 +3,4 @@ dist/
 debug.log
 .DS_Store
 *.log
+config.bat
