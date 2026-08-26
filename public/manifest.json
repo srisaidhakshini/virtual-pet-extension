@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Virtual Pet - Desk & Web Companion",
+  "version": "1.0.0",
+  "description": "A cute virtual pet living right on your webpages!",
+  "permissions": [
+    "storage",
+    "sidePanel",
+    "activeTab"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Virtual Pet"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/*", "*.svg", "*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
