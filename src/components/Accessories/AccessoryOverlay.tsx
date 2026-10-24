@@ -9,86 +9,10 @@ interface AccessoryOverlayProps {
 
 export const AccessoryOverlay: React.FC<AccessoryOverlayProps> = ({
   accessoryId,
-  petType = 'cat',
+  petType = 'sprout',
   size = 120,
 }) => {
-  // Proportional facial positioning for each pet species
-  const getProps = () => {
-    switch (petType) {
-      case 'cat':
-        return {
-          eyeLeft: { cx: 38, cy: 49 },
-          eyeRight: { cx: 62, cy: 49 },
-          glassesRadius: 6.5,
-          glassesBridgeY: 49,
-          glassesTempleY: 47,
-          headTopY: 18,
-          headbandY: 34,
-          earLeftX: 14,
-          earRightX: 76,
-          neckY: 66,
-          bowPos: { x: 64, y: 20 },
-        };
-      case 'dog':
-        return {
-          eyeLeft: { cx: 36, cy: 43 },
-          eyeRight: { cx: 64, cy: 43 },
-          glassesRadius: 6.5,
-          glassesBridgeY: 43,
-          glassesTempleY: 41,
-          headTopY: 16,
-          headbandY: 32,
-          earLeftX: 16,
-          earRightX: 74,
-          neckY: 60,
-          bowPos: { x: 66, y: 18 },
-        };
-      case 'elephant':
-        return {
-          eyeLeft: { cx: 38, cy: 42 },
-          eyeRight: { cx: 62, cy: 42 },
-          glassesRadius: 6.5,
-          glassesBridgeY: 42,
-          glassesTempleY: 40,
-          headTopY: 20,
-          headbandY: 32,
-          earLeftX: 18,
-          earRightX: 72,
-          neckY: 66,
-          bowPos: { x: 64, y: 22 },
-        };
-      case 'penguin':
-        return {
-          eyeLeft: { cx: 38, cy: 40 },
-          eyeRight: { cx: 62, cy: 40 },
-          glassesRadius: 6,
-          glassesBridgeY: 40,
-          glassesTempleY: 38,
-          headTopY: 16,
-          headbandY: 30,
-          earLeftX: 16,
-          earRightX: 74,
-          neckY: 62,
-          bowPos: { x: 64, y: 18 },
-        };
-      default:
-        return {
-          eyeLeft: { cx: 38, cy: 44 },
-          eyeRight: { cx: 62, cy: 44 },
-          glassesRadius: 6.5,
-          glassesBridgeY: 44,
-          glassesTempleY: 42,
-          headTopY: 18,
-          headbandY: 34,
-          earLeftX: 16,
-          earRightX: 74,
-          neckY: 62,
-          bowPos: { x: 64, y: 20 },
-        };
-    }
-  };
-
-  const p = getProps();
+  const p = { eyeLeft: { cx: 54, cy: 52 }, eyeRight: { cx: 73, cy: 47 }, glassesRadius: 7, glassesBridgeY: 50, glassesTempleY: 49, headTopY: 28, headbandY: 43, earLeftX: 18, earRightX: 79, neckY: 74, bowPos: { x: 73, y: 32 } };
 
   switch (accessoryId) {
     case 'glasses':
