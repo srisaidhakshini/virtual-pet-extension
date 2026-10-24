@@ -1,27 +1,22 @@
+import { RoomRuntime } from '../connection/RoomRuntime';
+import { canControlPet } from '../connection/guard';
 import React, { useEffect, useState, useRef } from 'react';
 import { usePetStore } from '../pet/petState';
+import { CheckIns } from '../companion/CheckIns';
 import { Pet } from '../components/Pet/Pet';
 import { PetInteractionMenu } from '../components/PetMenu/PetInteractionMenu';
 import { PetControlPanel } from '../components/SidePanel/PetControlPanel';
-import { Apple, Eye, Zap, Droplets, Footprints, X, PanelRightOpen, Play, Pause } from 'lucide-react';
+import { Apple, Eye, Zap, Droplets, Footprints, X, PanelRightOpen } from 'lucide-react';
 
-interface Footprint {
-  id: number;
-  x: number;
-  y: number;
-  opacity: number;
-}
-
-export const ContentOverlay: React.FC = () => {
+export const ContentOverlay: React.FC<{ withCheckIns?: boolean; withRoomRuntime?: boolean }> = ({ withCheckIns = true, withRoomRuntime = true }) => {
   const {
-    name,
+    petSize,
     petType,
     happiness,
     currentState,
     setState,
     direction,
     setDirection,
-    equippedAccessories,
     overlayVisible,
     position,
     setPosition,
@@ -34,19 +29,25 @@ export const ContentOverlay: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
-  const [footprints, setFootprints] = useState<Footprint[]>([]);
   
+  const pageCountedRef = useRef(false);
   const petRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
+  const draggedRef = useRef(false);
+  const dragStartRef = useRef({ x: 0, y: 0 });
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   
   // Auto-walking state refs
   const targetPosRef = useRef<{ x: number; y: number } | null>(null);
-  const isWaitingNextWalkRef = useRef(false);
-  const lastFootprintTimeRef = useRef(0);
 
   useEffect(() => {
-    initFromStorage();
+    void initFromStorage().then(() => {
+      if (pageCountedRef.current) return;
+      pageCountedRef.current = true;
+      const pet = usePetStore.getState();
+      usePetStore.setState({ journal: { ...pet.journal, pagesVisited: pet.journal.pagesVisited + 1 } });
+      pet.setPosition(pet.position);
+    });
   }, [initFromStorage]);
 
   // Message listener from extension popup or background worker
@@ -54,6 +55,7 @@ export const ContentOverlay: React.FC = () => {
     if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
       const handleMessage = (msg: any) => {
         if (msg.type === 'FOCUS_PET' && petRef.current) {
+          usePetStore.getState().setPosition({ x: Math.max(0, window.innerWidth / 2 - 55), y: Math.max(35, window.innerHeight / 2 - 55) });
           petRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       };
@@ -62,142 +64,77 @@ export const ContentOverlay: React.FC = () => {
     }
   }, []);
 
-  // Autonomous Screen Walking Engine
+  // Read live store values inside one animation loop, independent of React renders.
   useEffect(() => {
-    if (!overlayVisible || !isAutoWalkEnabled) return;
-
-    // Do not walk if performing an active non-walking action (sleeping, eating, bathing, playing)
-    const isBusy = currentState === 'sleeping' || currentState === 'eating' || currentState === 'bathing' || currentState === 'playing';
-    if (isBusy || isDraggingRef.current) {
-      targetPosRef.current = null;
-      return;
-    }
-
-    let animationFrameId: number;
-
-    const pickNewTarget = () => {
-      if (isWaitingNextWalkRef.current || isDraggingRef.current) return;
-
-      const padding = 80;
-      const maxX = Math.max(padding, window.innerWidth - 160);
-      const maxY = Math.max(padding, window.innerHeight - 160);
-
-      const targetX = Math.floor(Math.random() * (maxX - padding)) + padding;
-      const targetY = Math.floor(Math.random() * (maxY - padding)) + padding;
-
-      targetPosRef.current = { x: targetX, y: targetY };
-
-      const newDir = targetX < position.x ? 'left' : 'right';
-      setDirection(newDir);
-      setState(newDir === 'left' ? 'walking-left' : 'walking-right');
-    };
-
-    const updateMovement = () => {
-      if (!isAutoWalkEnabled || isDraggingRef.current) return;
-
-      // If pet has no target and is currently idle, schedule next walk target
-      if (!targetPosRef.current && (currentState === 'idle' || currentState === 'happy')) {
-        if (!isWaitingNextWalkRef.current) {
-          isWaitingNextWalkRef.current = true;
-          const waitTime = Math.floor(Math.random() * 3000) + 2000; // wait 2-5 seconds
-          setTimeout(() => {
-            isWaitingNextWalkRef.current = false;
-            pickNewTarget();
-          }, waitTime);
+    const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let frame = 0;
+    let previous = 0;
+    let nextWalkAt = performance.now() + 2200;
+    let distanceWalked = 0;
+    const tick = (now: number) => {
+      const dt = Math.min((now - (previous || now)) / 1000, 0.05);
+      previous = now;
+      const pet = usePetStore.getState();
+      if (!canControlPet()) { targetPosRef.current = null; frame = requestAnimationFrame(tick); return; }
+      const busy = !['idle', 'happy', 'walking-left', 'walking-right'].includes(pet.currentState);
+      const paused = !pet.overlayVisible || !pet.isAutoWalkEnabled || isDraggingRef.current || isMenuOpen || isSidePanelOpen || document.hidden || motionPreference.matches;
+      if (busy || paused) {
+        targetPosRef.current = null;
+        nextWalkAt = now + 1800;
+        if (pet.currentState.startsWith('walking')) pet.setState('idle');
+      } else {
+        const maxX = Math.max(0, window.innerWidth - pet.petSize - 12);
+        const maxY = Math.max(0, window.innerHeight - pet.petSize - 12);
+        const x = Math.max(0, Math.min(maxX, pet.position.x));
+        const y = Math.max(35, Math.min(Math.max(35, maxY), pet.position.y));
+        if (x !== pet.position.x || y !== pet.position.y) pet.setPosition({ x, y });
+        if (!targetPosRef.current && now >= nextWalkAt) {
+          targetPosRef.current = { x: Math.random() * maxX, y: 35 + Math.random() * Math.max(0, maxY - 35) };
         }
-        return;
-      }
-
-      if (targetPosRef.current) {
         const target = targetPosRef.current;
-        const dx = target.x - position.x;
-        const dy = target.y - position.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist < 6) {
-          // Reached destination!
-          setPosition(target);
-          targetPosRef.current = null;
-          setState('idle');
-          addStepsWalked(Math.floor(dist));
-        } else {
-          // Walk step by step
-          const speed = 1.6; // comfortable walking speed
-          const vx = (dx / dist) * speed;
-          const vy = (dy / dist) * speed;
-
-          const nextX = position.x + vx;
-          const nextY = position.y + vy;
-          const nextDir = dx < 0 ? 'left' : 'right';
-
-          if (direction !== nextDir) {
-            setDirection(nextDir);
-          }
-
-          const nextAnimState = nextDir === 'left' ? 'walking-left' : 'walking-right';
-          if (currentState !== nextAnimState) {
-            setState(nextAnimState);
-          }
-
-          setPosition({ x: nextX, y: nextY });
-          addStepsWalked(1);
-
-          // Add visual footprint trail
-          const now = Date.now();
-          if (now - lastFootprintTimeRef.current > 350) {
-            lastFootprintTimeRef.current = now;
-            setFootprints((prev) => [
-              ...prev.slice(-8), // Keep maximum 8 footprints
-              {
-                id: now,
-                x: nextX + 40,
-                y: nextY + 85,
-                opacity: 0.6,
-              },
-            ]);
+        if (target) {
+          const dx = target.x - x, dy = target.y - y;
+          const distance = Math.hypot(dx, dy);
+          const step = Math.min(distance, 75 * dt);
+          if (distance < 2) {
+            targetPosRef.current = null;
+            pet.setState('idle');
+            nextWalkAt = now + 2000 + Math.random() * 3500;
+          } else {
+            const facing = dx < 0 ? 'left' : 'right';
+            if (pet.direction !== facing) pet.setDirection(facing);
+            const gait = facing === 'left' ? 'walking-left' : 'walking-right';
+            if (pet.currentState !== gait) pet.setState(gait);
+            pet.setPosition({ x: x + dx / distance * step, y: y + dy / distance * step });
+            distanceWalked += step;
+            if (distanceWalked >= 20) { pet.addStepsWalked(1); distanceWalked -= 20; }
           }
         }
       }
-
-      animationFrameId = requestAnimationFrame(updateMovement);
+      frame = requestAnimationFrame(tick);
     };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [isMenuOpen, isSidePanelOpen]);
 
-    animationFrameId = requestAnimationFrame(updateMovement);
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [
-    overlayVisible,
-    isAutoWalkEnabled,
-    currentState,
-    position,
-    direction,
-    setPosition,
-    setDirection,
-    setState,
-    addStepsWalked,
-  ]);
-
-  // Fade out footprint trails
   useEffect(() => {
-    if (footprints.length === 0) return;
-    const timer = setTimeout(() => {
-      setFootprints((prev) =>
-        prev
-          .map((f) => ({ ...f, opacity: f.opacity - 0.1 }))
-          .filter((f) => f.opacity > 0)
-      );
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [footprints]);
+    const clamp = () => {
+      const pet = usePetStore.getState();
+      const next = { x: Math.max(0, Math.min(Math.max(0, innerWidth - petSize), pet.position.x)), y: Math.max(0, Math.min(Math.max(0, innerHeight - petSize), pet.position.y)) };
+      if (next.x !== pet.position.x || next.y !== pet.position.y) pet.setPosition(next);
+    };
+    clamp(); window.addEventListener('resize', clamp);
+    return () => window.removeEventListener('resize', clamp);
+  }, [petSize]);
 
   if (!overlayVisible) return null;
 
   // Handle Dragging pet around the webpage smoothly
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return; // Only left click
+    if (!canControlPet() || e.button !== 0) return; // Only left click
     isDraggingRef.current = true;
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
+    draggedRef.current = false;
     targetPosRef.current = null; // Pause auto walk destination when user grabs pet
 
     dragOffsetRef.current = {
@@ -206,18 +143,16 @@ export const ContentOverlay: React.FC = () => {
     };
 
     const handleMouseMove = (moveEv: MouseEvent) => {
-      const newX = Math.max(20, Math.min(window.innerWidth - 120, moveEv.clientX - dragOffsetRef.current.x));
-      const newY = Math.max(20, Math.min(window.innerHeight - 120, moveEv.clientY - dragOffsetRef.current.y));
+      if (Math.hypot(moveEv.clientX - dragStartRef.current.x, moveEv.clientY - dragStartRef.current.y) > 5) draggedRef.current = true;
+      const newX = Math.max(20, Math.min(window.innerWidth - petSize - 12, moveEv.clientX - dragOffsetRef.current.x));
+      const newY = Math.max(20, Math.min(window.innerHeight - petSize - 12, moveEv.clientY - dragOffsetRef.current.y));
       setPosition({ x: newX, y: newY });
     };
 
     const handleMouseUp = () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
-      // Wait briefly after releasing before resuming auto walk
-      setTimeout(() => {
-        isDraggingRef.current = false;
-      }, 1500);
+      isDraggingRef.current = false;
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -225,6 +160,7 @@ export const ContentOverlay: React.FC = () => {
   };
 
   const handlePetClick = (e: React.MouseEvent) => {
+    if (draggedRef.current) return;
     if (petRef.current) {
       setAnchorRect(petRef.current.getBoundingClientRect());
     }
@@ -233,22 +169,8 @@ export const ContentOverlay: React.FC = () => {
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[999999] overflow-hidden font-sans">
-      {/* Soft Dotted Footprint Trails left behind as pet walks */}
-      {footprints.map((fp) => (
-        <div
-          key={fp.id}
-          className="fixed pointer-events-none text-cozy-pink transition-opacity duration-500"
-          style={{
-            left: `${fp.x}px`,
-            top: `${fp.y}px`,
-            opacity: fp.opacity,
-            transform: 'scale(0.8)',
-          }}
-        >
-          <span className="text-xs">🐾</span>
-        </div>
-      ))}
-
+      {withRoomRuntime && <RoomRuntime movement />}
+      {withCheckIns && <CheckIns webpage />}
       {/* Floating Pet on Webpage */}
       <div
         ref={petRef}
@@ -263,11 +185,10 @@ export const ContentOverlay: React.FC = () => {
         className="active:cursor-grabbing transition-transform duration-75"
       >
         <Pet
-          name={name}
           petType={petType}
           state={currentState}
-          equippedAccessories={equippedAccessories}
-          size={110}
+          direction={direction}
+          size={petSize}
           onClick={handlePetClick}
         />
       </div>
@@ -279,50 +200,16 @@ export const ContentOverlay: React.FC = () => {
         anchorRect={anchorRect}
       />
 
-      {/* Bottom Right Quick Status Bar Pill matching input_file_1.png */}
-      <div className="fixed bottom-6 right-6 pointer-events-auto flex items-center space-x-2 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-full border-cozy shadow-cozy-hover transition-all hover:scale-105">
-        <div className="w-8 h-8 rounded-full bg-rose-100 border border-cozy flex items-center justify-center text-rose-500" title="Hunger">
-          <Apple className="w-4 h-4" />
-        </div>
-        <div className="w-8 h-8 rounded-full bg-amber-100 border border-cozy flex items-center justify-center text-amber-600" title="Happiness">
-          <Eye className="w-4 h-4" />
-        </div>
-        <div className="w-8 h-8 rounded-full bg-purple-100 border border-cozy flex items-center justify-center text-purple-600" title="Energy">
-          <Zap className="w-4 h-4" />
-        </div>
-        <div className="w-8 h-8 rounded-full bg-emerald-100 border border-cozy flex items-center justify-center text-emerald-600" title="Hygiene">
-          <Droplets className="w-4 h-4" />
-        </div>
-        <span className="font-extrabold text-xs text-cozy-text pl-1 pr-1">
-          {happiness}% Happy
-        </span>
-
-        {/* Auto Walk Toggle Button */}
-        <button
-          onClick={toggleAutoWalk}
-          className={`flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold transition-all border ${
-            isAutoWalkEnabled
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-              : 'bg-slate-100 text-slate-500 border-slate-300'
-          }`}
-          title={isAutoWalkEnabled ? 'Auto-Walking Active (Click to Pause)' : 'Auto-Walking Paused (Click to Walk)'}
-        >
-          <Footprints className="w-3.5 h-3.5" />
-          <span>{isAutoWalkEnabled ? 'Walking' : 'Paused'}</span>
+      <div className="fixed bottom-5 right-5 pointer-events-auto flex items-center gap-2 bg-white/95 px-2 py-2 rounded-full border border-cozy-border-light shadow-sm">
+        <button onClick={toggleAutoWalk} className="flex items-center gap-2 px-3 py-2 text-xs text-cozy-text rounded-full hover:bg-cozy-pink-light" aria-pressed={isAutoWalkEnabled}>
+          <Footprints size={14} />{isAutoWalkEnabled ? 'Pause wandering' : 'Resume wandering'}
         </button>
-
-        <button
-          onClick={() => setIsSidePanelOpen(true)}
-          className="ml-1 p-1.5 rounded-full bg-cozy-pink text-white hover:bg-cozy-pink/90 transition-colors shadow-sm"
-          title="Open Control Panel"
-        >
-          <PanelRightOpen className="w-4 h-4" />
-        </button>
+        <button onClick={() => setIsSidePanelOpen(true)} className="px-3 py-2 rounded-full bg-cozy-pink-light text-cozy-text text-xs" aria-label="Open care and companion">Care</button>
       </div>
 
       {/* Sliding Side Control Panel Drawer */}
       {isSidePanelOpen && (
-        <div className="fixed inset-y-0 right-0 w-[380px] bg-cozy-pink-light shadow-2xl border-l-2 border-cozy pointer-events-auto z-[9999999] overflow-y-auto animate-in slide-in-from-right duration-200">
+        <div className="fixed inset-y-0 right-0 w-[380px] max-w-full bg-cozy-pink-light shadow-2xl border-l-2 border-cozy pointer-events-auto z-[9999999] overflow-y-auto animate-in slide-in-from-right duration-200">
           <div className="sticky top-0 bg-white border-b border-cozy-border-light p-2 flex justify-end z-40">
             <button
               onClick={() => setIsSidePanelOpen(false)}

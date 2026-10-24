@@ -26,7 +26,7 @@ const initContentScript = () => {
   const styleLink = document.createElement('link');
   styleLink.rel = 'stylesheet';
   if (typeof chrome !== 'undefined' && chrome.runtime?.getURL) {
-    styleLink.href = chrome.runtime.getURL('assets/index.css');
+    styleLink.href = chrome.runtime.getURL('assets/overlay.css');
   } else {
     // In dev mode, append global stylesheet
     const styleTags = Array.from(document.querySelectorAll('style'));
