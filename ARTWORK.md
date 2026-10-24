@@ -1,0 +1,12 @@
+# Artwork provenance
+
+Built-in imagegen generated the selected artwork. Prompt: “Create a production sprite strip for a browser companion called Sprout: one original tiny cream woodland creature, mint green floppy ears, little green leaf tuft, dark bead eyes, peach cheeks, stubby paws. Soft polished 3D clay toy style, simple silhouette readable at 100px. Transparent background. Exactly SIX evenly spaced full-body poses in ONE horizontal row, identical character scale and ground baseline: neutral sitting facing slightly screen right, walking right left foot forward, walking right right foot forward, delighted paws raised, eating a tiny berry, curled asleep eyes closed. Each pose entirely separated with generous transparent padding, no overlapping, no shadows outside character, no text, no labels, no scenery. Wide landscape image.”
+
+The original selected strip is `public/Virtual_Pet/sprout-source.png`; poses were extracted into equal-size transparent canvases without redrawing. A later edge-cleanup generation was inspected but not selected because it retained fringe artifacts. Some fine fringe remains in the selected art.
+
+
+## Walking cycle
+
+The current walk uses eight registered frames at 90 ms per frame. Source: `public/Virtual_Pet/sprout-walk-source.png`. Frames: `sprout-walk-0.png` through `sprout-walk-7.png`. Preview: `sprout-walk-preview.gif`.
+
+Walk generation prompt: “Production animation strip for the EXACT Sprout character in reference image: cream clay woodland puppy creature with mint floppy ears, green leaf tuft, bead eyes, peach cheeks. Create exactly EIGHT full-body frames of one seamless WALK CYCLE facing screen-right, one horizontal row on transparent canvas. Consistent three-quarter right view, face, body proportions, size and lighting across all eight frames. Feet alternate contact, down, passing, up, opposite contact, down, passing, up. Subtle ear follow-through. Head stays registered, shared floor baseline, no size changes, no body rotations. Eight separated poses with generous empty gaps, equally spaced. Clean antialiased silhouette with no bright fringes or colored edge speckles. No text, labels, motion marks, ground, cast shadows, or accessories. Preserve original identity exactly. Wide landscape sprite strip.” Reference: `sprout-0.png`. Deterministic extraction retains the main connected pose in each slot and applies one shared scale and baseline.

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Virtual Pet - Desk & Web Companion",
+  "name": "Sprout - Browser Pet",
   "version": "1.0.0",
-  "description": "A cute virtual pet living right on your webpages!",
+  "description": "A little woodland companion for your browser. Feed, play, and connect with a friend.",
   "permissions": [
     "storage",
     "sidePanel",
@@ -21,15 +21,27 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_end"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["assets/*", "*.svg", "*.png"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "assets/*",
+        "*.svg",
+        "*.png",
+        "Virtual_Pet/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
-  ]
+  ],
+  "minimum_chrome_version": "116"
 }
