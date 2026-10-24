@@ -4,6 +4,7 @@ import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  base: './',
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
@@ -14,9 +15,9 @@ export default defineConfig({
     rollupOptions: {
       input: {
         popup: resolve(__dirname, 'popup.html'),
+        desktop: resolve(__dirname, 'desktop.html'),
         sidepanel: resolve(__dirname, 'sidepanel.html'),
         index: resolve(__dirname, 'index.html'),
-        content: resolve(__dirname, 'src/content/index.tsx'),
         background: resolve(__dirname, 'src/background/index.ts')
       },
       output: {

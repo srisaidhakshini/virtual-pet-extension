@@ -5,8 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build": "tsc && node scripts/build.mjs",
+    "preview": "vite preview",
+    "test": "node scripts/verify.mjs",
+    "desktop": "npm run build && node scripts/launch-desktop.cjs",
+    "desktop:start": "node scripts/launch-desktop.cjs",
+    "test:desktop": "node --test scripts/desktop.test.cjs",
+    "desktop:smoke": "node scripts/launch-desktop.cjs --smoke-test",
+    "desktop:review": "node scripts/launch-desktop.cjs --review-ui",
+    "server": "node server/index.mjs",
+    "test:connection": "node --test scripts/connection.test.mjs",
+    "desktop:review-connection": "node scripts/launch-desktop.cjs --review-connection"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -15,6 +24,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwind-merge": "^2.5.4",
+    "ws": "^8.22.0",
     "zustand": "^5.0.1"
   },
   "devDependencies": {
@@ -24,9 +34,11 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",
     "autoprefixer": "^10.4.20",
+    "electron": "^45.0.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
     "typescript": "^5.6.3",
     "vite": "^5.4.11"
-  }
+  },
+  "main": "desktop/main.cjs"
 }
