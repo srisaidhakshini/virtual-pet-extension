@@ -1,5 +1,9 @@
 # Sprout
 
+<p align="center">
+  <img src="public/Virtual_Pet/sprout-0.png" alt="Sprout, a cream woodland companion with mint ears and a leaf tuft" width="220" />
+</p>
+
 A little woodland companion for your browser and Windows desktop. Sprout wanders, can be dragged around, and responds to food, play, affection, baths, and sleep. It is the only pet; wardrobe, accessories, overhead name badges, and floating emoji effects have been removed.
 
 ## Current status
