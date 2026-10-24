@@ -1,7 +1,9 @@
+import { canControlPet } from '../connection/guard';
 import { create } from 'zustand';
-import { loadPetStateFromStorage, savePetStateToStorage, StoredPetState } from '../storage/storage';
+import { normalizePetSize, PET_SIZE } from './petSize';
+import { loadPetStateFromStorage, savePetStateToStorage, StoredPetState, observePetStorage } from '../storage/storage';
 
-export type PetType = 'cat' | 'dog' | 'bunny' | 'hamster' | 'bird' | 'penguin' | 'panda' | 'elephant';
+export type PetType = 'sprout';
 export type PetAnimState = 'idle' | 'walking-left' | 'walking-right' | 'happy' | 'eating' | 'playing' | 'bathing' | 'sleeping';
 
 export interface ActivityItem {
@@ -14,9 +16,10 @@ export interface ActivityItem {
 export interface PetState extends StoredPetState {
   isAutoWalkEnabled: boolean;
 
+  setPetSize: (size: number) => void;
+
   // Actions
   setName: (name: string) => void;
-  setPetType: (type: PetType) => void;
   setState: (state: PetAnimState) => void;
   setDirection: (direction: 'left' | 'right') => void;
   setPosition: (pos: { x: number; y: number }) => void;
@@ -31,8 +34,9 @@ export interface PetState extends StoredPetState {
   sleep: () => void;
   pet: () => void;
   
-  // Accessories & Customization
-  toggleAccessory: (accId: string) => void;
+  setCompanion: (settings: Partial<Pick<StoredPetState, 'checkInsEnabled' | 'checkInMinutes' | 'checkInVoice' | 'pageContextEnabled' | 'focusTopic'>>) => void;
+  requestCheckIn: () => void;
+  markCheckIn: () => void;
   
   // Internal update & decay
   applyDecay: () => void;
@@ -42,33 +46,36 @@ export interface PetState extends StoredPetState {
 }
 
 const DEFAULT_STATE: StoredPetState & { isAutoWalkEnabled: boolean } = {
-  name: 'Mochi',
-  petType: 'cat',
-  level: 5,
-  xp: 340,
+  checkInsEnabled: true,
+  checkInMinutes: 10,
+  checkInVoice: false,
+  pageContextEnabled: false,
+  focusTopic: '',
+  lastCheckInAt: Date.now(),
+  checkInRequest: 0,
+  petSize: PET_SIZE.default,
+  characterVersion: 2,
+  adoptedAt: Date.now(),
+  lastCareAt: Date.now(),
+  name: 'Sprout',
+  petType: 'sprout',
+  level: 1,
+  xp: 0,
   hunger: 82,
   happiness: 94,
   energy: 45,
   cleanliness: 60,
   health: 98,
   mood: 'Super Cozy! ✨',
-  accessories: ['glasses', 'bow', 'hat', 'crown', 'scarf'],
-  equippedAccessories: ['bow'],
+  accessories: [],
+  equippedAccessories: [],
   currentState: 'idle',
   direction: 'right',
   position: { x: 300, y: 150 },
   lastUpdated: Date.now(),
-  streak: 7,
-  activitiesLog: [
-    { id: '1', text: 'Mochi ate a pixel cookie', time: '2m ago', type: 'food' },
-    { id: '2', text: 'Mochi found 5 coins!', time: '15m ago', type: 'coin' },
-    { id: '3', text: 'Mochi had a bubbly bath', time: '1h ago', type: 'bath' },
-  ],
-  journal: {
-    stepsWalked: 14842,
-    pagesVisited: 182,
-    daysAlive: 48,
-  },
+  streak: 1,
+  activitiesLog: [],
+  journal: { stepsWalked: 0, pagesVisited: 0, daysAlive: 1 },
   overlayVisible: true,
   isAutoWalkEnabled: true,
 };
@@ -85,38 +92,51 @@ export const getGrowthStage = (level: number) => {
   return 'Adult';
 };
 
+let initialization: Promise<void> | undefined;
+
 export const usePetStore = create<PetState>((set, get) => ({
   ...DEFAULT_STATE,
 
-  initFromStorage: async () => {
-    const saved = await loadPetStateFromStorage();
-    if (saved) {
-      set({ ...saved });
-    }
-    get().applyDecay();
+  initFromStorage: () => {
+    if (initialization) return initialization;
+    initialization = (async () => {
+      const saved = await loadPetStateFromStorage();
+      if (saved) {
+        set({ ...saved, accessories: [], equippedAccessories: [], checkInRequest: 0, checkInMinutes: saved.checkInMinutes === 5 ? 5 : 10, petSize: normalizePetSize(saved.petSize), petType: 'sprout', ...(saved.characterVersion !== 2 ? { characterVersion: 2, petType: 'sprout' as PetType, name: saved.name === 'Mochi' ? 'Sprout' : saved.name || 'Sprout' } : {}),
+          currentState: saved.currentState === 'sleeping' ? 'sleeping' : 'idle', isAutoWalkEnabled: saved.isAutoWalkEnabled ?? true });
+      }
+      get().applyDecay();
+      savePetStateToStorage(get());
+    })();
+    return initialization;
+  },
+
+  setPetSize: (size) => {
+    if (!canControlPet()) return;
+    set({ petSize: normalizePetSize(size) });
+    savePetStateToStorage(get());
   },
 
   setName: (name) => {
-    set({ name });
+    set({ name: name.trim().slice(0, 24) || get().name });
     savePetStateToStorage(get());
   },
 
-  setPetType: (petType) => {
-    set({ petType });
-    savePetStateToStorage(get());
-  },
 
   setState: (currentState) => {
+    if (!canControlPet()) return;
     set({ currentState });
     savePetStateToStorage(get());
   },
 
   setDirection: (direction) => {
+    if (!canControlPet()) return;
     set({ direction });
     savePetStateToStorage(get());
   },
 
   setPosition: (position) => {
+    if (!canControlPet()) return;
     set({ position });
     savePetStateToStorage(get());
   },
@@ -128,6 +148,7 @@ export const usePetStore = create<PetState>((set, get) => ({
   },
 
   toggleAutoWalk: () => {
+    if (!canControlPet()) return;
     const next = !get().isAutoWalkEnabled;
     set({ isAutoWalkEnabled: next });
     savePetStateToStorage(get());
@@ -153,7 +174,7 @@ export const usePetStore = create<PetState>((set, get) => ({
       newXP -= maxXP;
       newLevel += 1;
       maxXP = getNextLevelXP(newLevel);
-      get().addLog(`🎉 ${state.name} leveled up to Lv. ${newLevel}!`, 'level');
+      get().addLog(`🎉 Your pet leveled up to Lv. ${newLevel}!`, 'level');
     }
 
     set({ xp: newXP, level: newLevel });
@@ -168,11 +189,15 @@ export const usePetStore = create<PetState>((set, get) => ({
       type,
     };
     const updated = [newLog, ...get().activitiesLog.slice(0, 9)];
-    set({ activitiesLog: updated });
+    const now = Date.now();
+    const dayNumber = (time: number) => { const date = new Date(time); return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000; };
+    const daysSinceCare = dayNumber(now) - dayNumber(get().lastCareAt || now);
+    set({ activitiesLog: updated, lastCareAt: now, streak: daysSinceCare === 1 ? get().streak + 1 : daysSinceCare > 1 ? 1 : get().streak });
     savePetStateToStorage(get());
   },
 
   feed: () => {
+    if (!canControlPet()) return;
     const state = get();
     set({
       currentState: 'eating',
@@ -183,19 +208,14 @@ export const usePetStore = create<PetState>((set, get) => ({
       lastUpdated: Date.now(),
     });
     get().addXP(10);
-    get().addLog(`${state.name} ate a pixel treat`, 'food');
+    get().addLog(`Your pet ate a pixel treat`, 'food');
     
-    setTimeout(() => {
-      if (get().currentState === 'eating') {
-        set({ currentState: 'idle' });
-        savePetStateToStorage(get());
-      }
-    }, 3500);
 
     savePetStateToStorage(get());
   },
 
   play: () => {
+    if (!canControlPet()) return;
     const state = get();
     set({
       currentState: 'playing',
@@ -205,19 +225,14 @@ export const usePetStore = create<PetState>((set, get) => ({
       lastUpdated: Date.now(),
     });
     get().addXP(25);
-    get().addLog(`${state.name} played with toy`, 'play');
+    get().addLog(`Your pet played with toy`, 'play');
 
-    setTimeout(() => {
-      if (get().currentState === 'playing') {
-        set({ currentState: 'idle' });
-        savePetStateToStorage(get());
-      }
-    }, 4000);
 
     savePetStateToStorage(get());
   },
 
   bathe: () => {
+    if (!canControlPet()) return;
     const state = get();
     set({
       currentState: 'bathing',
@@ -227,19 +242,14 @@ export const usePetStore = create<PetState>((set, get) => ({
       lastUpdated: Date.now(),
     });
     get().addXP(15);
-    get().addLog(`${state.name} had a warm bath`, 'bath');
+    get().addLog(`Your pet had a warm bath`, 'bath');
 
-    setTimeout(() => {
-      if (get().currentState === 'bathing') {
-        set({ currentState: 'idle' });
-        savePetStateToStorage(get());
-      }
-    }, 4000);
 
     savePetStateToStorage(get());
   },
 
   sleep: () => {
+    if (!canControlPet()) return;
     const state = get();
     const isSleeping = state.currentState === 'sleeping';
     if (isSleeping) {
@@ -247,7 +257,7 @@ export const usePetStore = create<PetState>((set, get) => ({
         currentState: 'idle',
         mood: 'Well Rested ☀️',
       });
-      get().addLog(`${state.name} woke up`, 'sleep');
+      get().addLog(`Your pet woke up`, 'sleep');
     } else {
       set({
         currentState: 'sleeping',
@@ -256,12 +266,13 @@ export const usePetStore = create<PetState>((set, get) => ({
         lastUpdated: Date.now(),
       });
       get().addXP(15);
-      get().addLog(`${state.name} went to sleep Zzz...`, 'sleep');
+      get().addLog(`Your pet went to sleep Zzz...`, 'sleep');
     }
     savePetStateToStorage(get());
   },
 
   pet: () => {
+    if (!canControlPet()) return;
     const state = get();
     set({
       currentState: 'happy',
@@ -270,30 +281,24 @@ export const usePetStore = create<PetState>((set, get) => ({
       lastUpdated: Date.now(),
     });
     get().addXP(8);
-    get().addLog(`You petted ${state.name}!`, 'pet');
+    get().addLog(`You petted Your pet!`, 'pet');
 
-    setTimeout(() => {
-      if (get().currentState === 'happy') {
-        set({ currentState: 'idle' });
-        savePetStateToStorage(get());
-      }
-    }, 2500);
 
     savePetStateToStorage(get());
   },
 
-  toggleAccessory: (accId) => {
-    const state = get();
-    const isEquipped = state.equippedAccessories.includes(accId);
-    const updated = isEquipped
-      ? state.equippedAccessories.filter((id) => id !== accId)
-      : [...state.equippedAccessories, accId];
-    
-    set({ equippedAccessories: updated });
+  setCompanion: settings => {
+    const update = { ...settings };
+    if (update.checkInMinutes !== undefined) update.checkInMinutes = update.checkInMinutes === 5 ? 5 : 10;
+    if (update.focusTopic !== undefined) update.focusTopic = update.focusTopic.slice(0, 120);
+    set({ ...update, ...(update.checkInMinutes !== undefined || update.checkInsEnabled !== undefined ? { lastCheckInAt: Date.now() } : {}) });
     savePetStateToStorage(get());
   },
+  requestCheckIn: () => { set({ checkInRequest: Date.now() }); savePetStateToStorage(get()); },
+  markCheckIn: () => { set({ lastCheckInAt: Date.now() }); savePetStateToStorage(get()); },
 
   applyDecay: () => {
+    if (!canControlPet()) return;
     const state = get();
     const now = Date.now();
     const elapsedMinutes = Math.floor((now - state.lastUpdated) / 60000);
@@ -301,15 +306,16 @@ export const usePetStore = create<PetState>((set, get) => ({
     if (elapsedMinutes <= 0) return;
 
     // Cozy, relaxed decay rates
-    let hungerLoss = Math.floor(elapsedMinutes / 12) * 2;
-    let happyLoss = Math.floor(elapsedMinutes / 15) * 1;
-    let cleanLoss = Math.floor(elapsedMinutes / 20) * 1;
+    const ticks = (minutes: number) => Math.floor(now / (minutes * 60000)) - Math.floor(state.lastUpdated / (minutes * 60000));
+    let hungerLoss = ticks(12) * 2;
+    let happyLoss = ticks(15);
+    let cleanLoss = ticks(20);
     let energyDelta = 0;
 
     if (state.currentState === 'sleeping') {
-      energyDelta = Math.floor(elapsedMinutes / 5) * 5;
+      energyDelta = ticks(5) * 5;
     } else {
-      energyDelta = -Math.floor(elapsedMinutes / 25) * 1;
+      energyDelta = -ticks(25);
     }
 
     const newHunger = Math.max(0, state.hunger - hungerLoss);
@@ -327,9 +333,26 @@ export const usePetStore = create<PetState>((set, get) => ({
       cleanliness: newClean,
       energy: newEnergy,
       health: newHealth,
+      journal: { ...state.journal, daysAlive: Math.max(1, Math.floor((now - (state.adoptedAt || now)) / 86400000) + 1) },
       lastUpdated: now,
     });
 
     savePetStateToStorage(get());
   },
 }));
+
+// One observer per extension surface, without writing received changes back.
+observePetStorage(state => usePetStore.setState(state));
+setInterval(() => {
+  if (typeof document === 'undefined' || !document.hidden) usePetStore.getState().applyDecay();
+}, 60000);
+
+// Every surface completes received actions, even if the initiating popup closes.
+let actionTimer: ReturnType<typeof setTimeout> | undefined;
+usePetStore.subscribe((state, previous) => {
+  if (state.currentState === previous.currentState && state.lastUpdated === previous.lastUpdated) return;
+  clearTimeout(actionTimer);
+  const duration: Partial<Record<PetAnimState, number>> = { eating: 3500, playing: 4000, bathing: 4000, happy: 2500 };
+  const delay = duration[state.currentState];
+  if (delay) actionTimer = setTimeout(() => usePetStore.getState().setState('idle'), delay);
+});

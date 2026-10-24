@@ -79,17 +79,19 @@ export const PetInteractionMenu: React.FC<PetInteractionMenuProps> = ({
   // Click outside listener
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (menuRef.current && !menuRef.current.contains(e.composedPath()[0] as Node)) {
         onClose();
       }
     };
 
+    let timer: ReturnType<typeof setTimeout> | undefined;
     if (isOpen) {
-      setTimeout(() => {
+      timer = setTimeout(() => {
         document.addEventListener('mousedown', handleClickOutside);
       }, 50);
     }
     return () => {
+      clearTimeout(timer);
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen, onClose]);
