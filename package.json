@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && node scripts/build.mjs",
+    "build": "npm run security:check && tsc && node scripts/build.mjs",
     "preview": "vite preview",
     "test": "node scripts/verify.mjs",
     "desktop": "npm run build && node scripts/launch-desktop.cjs",
@@ -15,7 +15,9 @@
     "desktop:review": "node scripts/launch-desktop.cjs --review-ui",
     "server": "node server/index.mjs",
     "test:connection": "node --test scripts/connection.test.mjs",
-    "desktop:review-connection": "node scripts/launch-desktop.cjs --review-connection"
+    "desktop:review-connection": "node scripts/launch-desktop.cjs --review-connection",
+    "test:security": "node --test scripts/security.test.cjs",
+    "security:check": "node scripts/security-check.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -32,13 +34,16 @@
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.3.3",
+    "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.20",
     "electron": "^45.0.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
     "typescript": "^5.6.3",
-    "vite": "^5.4.11"
+    "vite": "^6.4.5"
   },
-  "main": "desktop/main.cjs"
+  "main": "desktop/main.cjs",
+  "overrides": {
+    "postcss-selector-parser": "^7.1.6"
+  }
 }

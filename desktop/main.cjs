@@ -18,7 +18,7 @@ else {
   let behavior = { currentState: 'idle', isAutoWalkEnabled: true, overlayVisible: true };
   let lastPublish = 0;
   let position, target, nextWalk = 0, lastTick = 0, dragging = false, dragOffset, hovering = false, locked = false, hiddenByUser = false;
-  const trusted = event => [petWindow, roomWindow].some(win => win && !win.isDestroyed() && win.webContents === event.sender);
+  const trusted = event => [petWindow, roomWindow].some(win => win && !win.isDestroyed() && win.webContents === event.sender && event.senderFrame === win.webContents.mainFrame);
   const send = (channel, value) => {
     for (const win of [petWindow, roomWindow]) if (win && !win.isDestroyed()) win.webContents.send(channel, value);
   };
@@ -70,7 +70,14 @@ else {
   function secure(win) {
     win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     win.webContents.on('will-navigate', event => event.preventDefault());
+    win.webContents.on('will-attach-webview', event => event.preventDefault());
+    win.webContents.session.setPermissionCheckHandler(() => false);
     win.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
+    win.webContents.session.on('will-download', event => event.preventDefault());
+    win.webContents.session.webRequest.onHeadersReceived((details, callback) => callback({ responseHeaders: {
+      ...details.responseHeaders,
+      'Content-Security-Policy': ["default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-src 'none'; form-action 'none'"],
+    } }));
   }
   app.whenReady().then(() => {
     statePath = path.join(app.getPath('userData'), 'pet-state.json');
@@ -165,8 +172,15 @@ else {
   });
   ipcMain.on('pet:behavior', (event, value) => {
     if (!trusted(event) || event.sender !== petWindow.webContents) return;
-    behavior = value;
-    const bounds = getPetBounds(value.petSize);
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return;
+    behavior = {
+      currentState: ['idle','walking-left','walking-right','happy','eating','playing','bathing','sleeping'].includes(value.currentState) ? value.currentState : 'idle',
+      petSize: Number.isFinite(value.petSize) ? Math.max(80, Math.min(220, value.petSize)) : 140,
+      isAutoWalkEnabled: value.isAutoWalkEnabled === true,
+      overlayVisible: value.overlayVisible === true,
+      reducedMotion: value.reducedMotion === true,
+    };
+    const bounds = getPetBounds(behavior.petSize);
     const currentBounds = petWindow.getBounds();
     if (bounds.width !== currentBounds.width || bounds.height !== currentBounds.height) {
       const clamped = clampPosition(position || currentBounds, screen.getDisplayMatching(currentBounds).workArea, bounds);
