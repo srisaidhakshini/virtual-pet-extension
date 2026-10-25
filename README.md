@@ -8,6 +8,7 @@ A little woodland companion for your browser and Windows desktop. Sprout wanders
 
 ## Current status
 
+- **Hover hearts:** keep your cursor on Sprout for a continuous flow of three soft red 3D hearts in a vertical zigzag. Moving away stops new hearts; existing hearts gently fade from top to bottom. Available on the desktop and browser pet, with reduced-motion support.
 - **Care:** feeding, play with an animated graphical ball, bathing, sleep/wake, affection, progress, and a saved 80-220 px size control.
 - **Companion:** local check-ins every 5 or 10 minutes, optional device-local voice, and an optional focus topic. These are prewritten messages, not AI conversation.
 - **Connect:** two-person rooms, room codes, shared pet movement/actions, control requests, handoff, and leaving. A single controller is enforced by the server.
@@ -113,6 +114,10 @@ Desktop review screenshots and isolated test profiles are written to ignored `.d
 
 React, TypeScript, Zustand, Vite, Tailwind, Electron, and a Node WebSocket room service. The extension's classic content script is bundled separately and injects CSS into a shadow root. Its shared connection lives in the Manifest V3 background worker; the desktop connection lives in the main process.
 
-The walk cycle uses eight authored, predecoded frames at 90 ms per frame with shared scale and floor registration. Other poses use subtle motion, with facing applied independently. Reduced-motion preferences stop decorative animation and autonomous wandering. Only the play state adds a ground-level SVG toy.
+The walk cycle uses eight authored, predecoded frames at 90 ms per frame with shared scale and floor registration. Other poses use subtle motion, with facing applied independently. Reduced-motion preferences stop decorative animation and autonomous wandering. The play state adds a ground-level SVG toy. Hover hearts use a transparent rendered image matching Sprout's soft, matte texture; each completed burst is removed, and the emission timer stops on pointer exit, cancellation, window blur, or unmount.
 
 See [ARTWORK.md](ARTWORK.md) for generated asset provenance and prompts. See [security/README.md](security/README.md) for unrelated obfuscated code discovered in the original repository, removed from executable configuration, and preserved as non-executable evidence. Quarantined files are not included in builds or sharing ZIPs.
+
+<p align="center">
+  <img src="public/Virtual_Pet/heart-3d.png" alt="A soft red 3D heart matching Sprout's plush texture" width="110" />
+</p>

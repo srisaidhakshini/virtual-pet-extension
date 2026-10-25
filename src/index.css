@@ -163,3 +163,21 @@ button { transition: background-color .18s, border-color .18s, box-shadow .18s; 
 .room-presence, .room-request { border-radius: 9px; background: #f0f6e9; padding: 12px; font-size: 12px; line-height: 1.7; }
 .connection-panel .connection-error { background: #fff2ee; border-radius: 8px; padding: 12px; color: #9c4b37; }
 .connection-panel .connection-note { font-size: 10px; }
+
+/* Glossy affection particles stay transparent to cursor and drag interactions. */
+.pet-hearts { position: absolute; inset: 0; pointer-events: none; }
+.pet-heart { position: absolute; top: calc(22% + var(--heart-offset)); left: 50%; width: clamp(12px, 14%, 22px); height: auto; opacity: 0; filter: drop-shadow(1px 2px 1px #8d242433); animation: pet-heart-rise 1.65s ease-out both; animation-delay: var(--heart-delay); }
+.pet-heart-0 { --heart-offset: 0px; --heart-drift: -4px; --heart-tilt: -12deg; --heart-delay: .36s; margin-left: -15%; }
+.pet-heart-1 { --heart-offset: -16px; --heart-drift: 4px; --heart-tilt: 12deg; --heart-delay: .18s; margin-left: 1%; }
+.pet-heart-2 { --heart-offset: -28px; --heart-drift: -4px; --heart-tilt: -10deg; --heart-delay: 0s; margin-left: -15%; }
+@keyframes pet-heart-rise {
+  0% { opacity: 0; transform: translate(0, 5px) scale(.45) rotate(0deg); }
+  18% { opacity: 1; }
+  40% { opacity: 1; }
+  /* Finish fading inside the transparent window, including at the smallest pet size. */
+  85%, 100% { opacity: 0; transform: translate(var(--heart-drift), -20px) scale(1.05) rotate(var(--heart-tilt)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pet-heart { animation-name: pet-heart-fade; animation-duration: 1s; }
+  @keyframes pet-heart-fade { 0%, 100% { opacity: 0; } 20%, 70% { opacity: 1; } }
+}
