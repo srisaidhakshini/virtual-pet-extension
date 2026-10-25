@@ -116,7 +116,7 @@ React, TypeScript, Zustand, Vite, Tailwind, Electron, and a Node WebSocket room 
 
 The walk cycle uses eight authored, predecoded frames at 90 ms per frame with shared scale and floor registration. Other poses use subtle motion, with facing applied independently. Reduced-motion preferences stop decorative animation and autonomous wandering. The play state adds a ground-level SVG toy. Hover hearts use a transparent rendered image matching Sprout's soft, matte texture; each completed burst is removed, and the emission timer stops on pointer exit, cancellation, window blur, or unmount.
 
-See [ARTWORK.md](ARTWORK.md) for generated asset provenance and prompts. See [security/README.md](security/README.md) for unrelated obfuscated code discovered in the original repository, removed from executable configuration, and preserved as non-executable evidence. Quarantined files are not included in builds or sharing ZIPs.
+See [ARTWORK.md](ARTWORK.md) for generated asset provenance and prompts. See [security/README.md](security/README.md) for unrelated obfuscated code discovered in the original repository, removed from executable configuration, and subsequently deleted from the working tree. Security checks run before builds.
 
 <p align="center">
   <img src="public/Virtual_Pet/heart-3d.png" alt="A soft red 3D heart matching Sprout's plush texture" width="110" />
