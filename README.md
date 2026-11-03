@@ -6,6 +6,24 @@
 
 A little woodland companion for your browser and Windows desktop. Sprout wanders, can be dragged around, and responds to food, play, affection, baths, and sleep. It is the only pet; wardrobe, accessories, overhead name badges, and floating emoji effects have been removed.
 
+<p align="center">
+  <img src="public/readme/sprout-animated.svg" alt="Animated Sprout bobbing while hearts float up" width="720" />
+</p>
+
+## About
+
+Sprout is a small woodland pet for your browser and Windows desktop. It wanders around the screen, can be dragged anywhere, and responds to care:
+
+- 🍓 **Feed** and 🎾 **play** with a ball
+- 🛁 **Bathe** and 😴 **sleep / wake** on your schedule
+- 💗 **Affection** and progress that you can follow over time
+- 🔔 **Check-ins** every 5 or 10 minutes, with optional voice
+- 👫 **Connect** with a friend in a shared room and pass control back and forth
+
+It ships as a Chrome extension (Windows and Mac, Chrome 116+) and as an Electron desktop pet. Sprout is the only pet: wardrobe, accessories, name badges, and emoji effects have been removed.
+
+**Stack:** React, TypeScript, Zustand, Vite, Tailwind, Electron, and a Node WebSocket room service.
+
 ## Current status
 
 - **Hover hearts:** keep your cursor on Sprout for a continuous flow of three soft red 3D hearts in a vertical zigzag. Moving away stops new hearts; existing hearts gently fade from top to bottom. Available on the desktop and browser pet, with reduced-motion support.
