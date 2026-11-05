@@ -57,3 +57,5 @@ The extension's connection is owned by its background worker; closing its popup 
 Alternatively choose **New → Blueprint** and point Render at this repo's `render.yaml`, which already includes the same service settings and the Free instance type.
 
 Free services can sleep after 15 minutes without inbound requests or WebSocket messages, and waking can take about a minute. Opening `/health` first helps make the first connection predictable. Rooms are in-memory and disappear on a service restart; create a fresh code after that. No database or AI API key is needed.
+
+
