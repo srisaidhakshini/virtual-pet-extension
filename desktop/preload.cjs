@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('desktopPet', {
   interactive: value => ipcRenderer.send('pet:interactive', value),
   drag: value => ipcRenderer.send('pet:drag', value),
   openRoom: () => ipcRenderer.send('pet:room'),
+  bubble: visible => ipcRenderer.send('pet:bubble', visible),
   checkIn: text => ipcRenderer.invoke('pet:check-in', text),
   menu: () => ipcRenderer.send('pet:menu'),
   onState: callback => {

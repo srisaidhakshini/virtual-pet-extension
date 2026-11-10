@@ -1,6 +1,6 @@
 const { RoomClient } = require('../dist/room-client.cjs');
 const WebSocket = require('ws');
-const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, powerMonitor, Notification } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, powerMonitor } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { PET_WIDTH, PET_HEIGHT, getPetBounds, clampPosition, stepToward } = require('./motion.cjs');
@@ -16,7 +16,23 @@ if (!app.requestSingleInstanceLock()) app.quit();
 else {
   let petWindow, roomWindow, tray, timer, state = {}, statePath;
   let behavior = { currentState: 'idle', isAutoWalkEnabled: true, overlayVisible: true };
-  let lastPublish = 0;
+  let lastPublish = 0, bubbleVisible = false;
+  function resizePet() {
+    if (!petWindow || petWindow.isDestroyed()) return;
+    const base = getPetBounds(behavior.petSize);
+    const bounds = bubbleVisible ? { width: Math.max(320, base.width), height: base.height + 160 } : base;
+    const current = petWindow.getBounds();
+    if (bounds.width === current.width && bounds.height === current.height) return;
+    const anchor = { x: current.x + (current.width - bounds.width) / 2, y: current.y + current.height - bounds.height };
+    position = clampPosition(anchor, screen.getDisplayMatching(current).workArea, bounds);
+    target = null;
+    petWindow.setBounds({ ...position, ...bounds });
+  }
+  ipcMain.on('pet:bubble', (event, visible) => {
+    if (!trusted(event) || event.sender !== petWindow.webContents) return;
+    bubbleVisible = visible === true;
+    resizePet();
+  });
   let position, target, nextWalk = 0, lastTick = 0, dragging = false, dragOffset, hovering = false, locked = false, hiddenByUser = false;
   const trusted = event => [petWindow, roomWindow].some(win => win && !win.isDestroyed() && win.webContents === event.sender && event.senderFrame === win.webContents.mainFrame);
   const send = (channel, value) => {
@@ -103,6 +119,21 @@ else {
             return { images: document.images.length, pet: !!document.querySelector('[data-pet-interactive]'), background: getComputedStyle(document.body).backgroundColor, bridge: !!window.desktopPet };
           })()`);
           if (!page.pet || !page.images || !page.bridge || page.background !== 'rgba(0, 0, 0, 0)') throw new Error(JSON.stringify(page));
+          await petWindow.webContents.executeJavaScript(`(async () => {
+            await new Promise(r=>setTimeout(r,600));
+            await window.desktopPet.saveState({checkInRequest: Date.now()});
+            for (let i=0; i<80 && !document.querySelector('.desktop-checkin'); i++) await new Promise(r=>setTimeout(r,50));
+            await new Promise(r=>setTimeout(r,100));
+            const bubble = document.querySelector('.desktop-checkin');
+            if (!bubble) throw Error('No speech bubble after check-in');
+            const rect = bubble.getBoundingClientRect();
+            const pet = document.querySelector('[data-pet-interactive] img').getBoundingClientRect();
+            if (rect.top < 0 || rect.bottom > pet.top + 30 || rect.right > innerWidth) throw Error('Speech bubble clipped or not above pet');
+            bubble.querySelector('button').click();
+            await new Promise(r=>setTimeout(r,100));
+            if (document.querySelector('.desktop-checkin')) throw Error('Speech bubble did not dismiss');
+          })()`);
+          console.log('PASS: desktop check-in speech bubble appears above pet without clipping and dismisses');
           const before = petWindow.getPosition();
           setTimeout(() => {
             const after = petWindow.getPosition();
@@ -180,13 +211,7 @@ else {
       overlayVisible: value.overlayVisible === true,
       reducedMotion: value.reducedMotion === true,
     };
-    const bounds = getPetBounds(behavior.petSize);
-    const currentBounds = petWindow.getBounds();
-    if (bounds.width !== currentBounds.width || bounds.height !== currentBounds.height) {
-      const clamped = clampPosition(position || currentBounds, screen.getDisplayMatching(currentBounds).workArea, bounds);
-      position = clamped; target = null;
-      petWindow.setBounds({ ...clamped, ...bounds });
-    }
+    resizePet();
     if (!behavior.overlayVisible) petWindow.hide();
     else if (!hiddenByUser && !petWindow.isVisible()) petWindow.showInactive();
   });
@@ -205,10 +230,6 @@ else {
   ipcMain.handle('pet:check-in', (event, text) => {
     if (!trusted(event) || event.sender !== petWindow.webContents || locked || typeof text !== 'string' || !text.length || text.length > 500 || Date.now() - lastNotification < 3000) return false;
     lastNotification = Date.now();
-    if (Notification.isSupported()) {
-      const notification = new Notification({ title: 'A little check-in', body: text, silent: true });
-      notification.on('click', openRoom); notification.show();
-    }
     return true;
   });
   ipcMain.on('pet:room', event => { if (trusted(event)) openRoom(); });

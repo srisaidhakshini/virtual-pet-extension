@@ -181,3 +181,8 @@ button { transition: background-color .18s, border-color .18s, box-shadow .18s; 
   .pet-heart { animation-name: pet-heart-fade; animation-duration: 1s; }
   @keyframes pet-heart-fade { 0%, 100% { opacity: 0; } 20%, 70% { opacity: 1; } }
 }
+
+/* A speech bubble attached to the desktop pet's transparent window. */
+.desktop-checkin { position: absolute; bottom: calc(var(--desktop-pet-size, 140px) + 28px); left: 12px; right: 12px; top: auto; width: auto; max-height: 140px; box-sizing: border-box; margin: 0; padding: 14px; border-radius: 18px; background: #fbfdf8; }
+.desktop-checkin::after { content: ''; position: absolute; left: calc(50% - 7px); bottom: -8px; width: 14px; height: 14px; background: #fbfdf8; border-right: 1px solid #dce5d5; border-bottom: 1px solid #dce5d5; transform: rotate(45deg); }
+.desktop-checkin p { max-height: 110px; overflow-y: auto; font-size: 12px; line-height: 1.6; }

@@ -61,7 +61,7 @@ function DesktopPet() {
     window.desktopPet?.behavior({ currentState: pet.currentState, isAutoWalkEnabled: pet.isAutoWalkEnabled, overlayVisible: pet.overlayVisible, petSize: pet.petSize, reducedMotion });
   }, [pet.currentState, pet.isAutoWalkEnabled, pet.overlayVisible, pet.petSize, reducedMotion]);
 
-  return <div style={{ width: pet.petSize + 24, height: pet.petSize + 44, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 8 }}>
+  return <div style={{ '--desktop-pet-size': `${pet.petSize}px`, position: 'relative', width: '100%', height: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 8 } as React.CSSProperties}>
     <RoomRuntime />
     <CheckIns />
     <div data-pet-interactive

@@ -14,6 +14,7 @@ declare global {
       drag(value: boolean): void;
       openRoom(): void;
       menu(): void;
+      bubble(visible: boolean): void;
       checkIn(text: string): Promise<boolean>;
       onState(callback: (state: Partial<StoredPetState>) => void): () => void;
       onMotion(callback: (motion: { walking: boolean; direction?: 'left' | 'right' }) => void): () => void;

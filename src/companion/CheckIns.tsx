@@ -18,7 +18,7 @@ export function CheckIns({ webpage = false }: { webpage?: boolean }) {
     if (window.desktopPet) {
       try { if (!await window.desktopPet.checkIn(text)) return; } catch { return; }
     }
-    else setMessage(text);
+    setMessage(text);
     // Use only a device-local voice. Never fall back to a network speech service.
     if (state.checkInVoice && 'speechSynthesis' in window) {
       const voice = speechSynthesis.getVoices().find(voice => voice.localService && voice.lang.startsWith('en'));
@@ -37,5 +37,10 @@ export function CheckIns({ webpage = false }: { webpage?: boolean }) {
   }, [pet.checkInRequest, deliver]);
   useEffect(() => { if (!pet.checkInsEnabled) { setMessage(''); if ('speechSynthesis' in window) speechSynthesis.cancel(); } }, [pet.checkInsEnabled]);
   useEffect(() => { if (!message) return; const timer = setTimeout(() => setMessage(''), 20000); return () => clearTimeout(timer); }, [message]);
-  return message ? <aside className="companion-checkin" role="status"><MessageCircle size={18} /><p>{message}</p><button onClick={() => { setMessage(''); if ('speechSynthesis' in window) speechSynthesis.cancel(); }} aria-label="Dismiss check-in"><X size={15} /></button></aside> : null;
+  useEffect(() => {
+    if (!window.desktopPet || !document.getElementById('desktop-root')) return;
+    window.desktopPet.bubble(!!message);
+    return () => window.desktopPet?.bubble(false);
+  }, [message]);
+  return message ? <aside data-pet-interactive={window.desktopPet ? '' : undefined} className={`companion-checkin${window.desktopPet ? ' desktop-checkin' : ''}`} role="status"><MessageCircle size={18} /><p>{message}</p><button onClick={() => { setMessage(''); if ('speechSynthesis' in window) speechSynthesis.cancel(); }} aria-label="Dismiss check-in"><X size={15} /></button></aside> : null;
 }

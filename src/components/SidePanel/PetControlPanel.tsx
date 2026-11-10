@@ -72,7 +72,7 @@ export const PetControlPanel: React.FC = () => {
         <label className="companion-option"><span>Use visible webpage headings</span><input type="checkbox" disabled={!!window.desktopPet} checked={pet.pageContextEnabled && !window.desktopPet} onChange={e => pet.setCompanion({ pageContextEnabled: e.target.checked })} /></label>
         <p>{window.desktopPet ? 'Desktop screen reading is not connected. Use the focus field above for now.' : 'Optional extension context: visible page headings only, processed on this device. No form inputs, screenshots, or page text are uploaded.'}</p>
         <button className="primary-button" onClick={pet.requestCheckIn}>Try a check-in</button>
-        <p>{window.desktopPet ? 'Desktop check-ins appear as system notifications; Windows notification settings apply.' : 'Check-ins appear while the pet is visible on an active webpage.'}</p>
+        <p>{window.desktopPet ? 'Desktop check-ins appear in a speech bubble above Sprout.' : 'Check-ins appear while the pet is visible on an active webpage.'}</p>
       </div>}
       {tab === 'progress' && <>
         <div className="care-section-heading"><h2>Growing together</h2><span>Level {pet.level}</span></div>
