@@ -11,7 +11,7 @@ A little woodland companion for your browser and Windows desktop. Sprout wanders
 The Chrome tester is available by manual installation. A Chrome Web Store listing and standalone desktop installer are not available yet.
 
 <p align="center">
-  <img src="public/readme/sprout-animated.svg" alt="Animated Sprout bobbing while hearts float up" width="720" />
+  <a href="https://sprout.dhakshini.studio"><img src="public/readme/sprout-website.png" alt="The live Sprout website, showing the actual pet, preview controls, and Chrome download link" width="1000" /></a>
 </p>
 
 ## About
